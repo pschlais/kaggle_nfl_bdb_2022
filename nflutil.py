@@ -66,6 +66,37 @@ def base_import(base_path='csv', week=1):
     return game_df, play_df, players_df, coverage_df, target_df, track_df
 
 
+def get_frame_of_event(track_df, event_name):
+    # returns a dataframe of gameId, playId, frameId, and event name for the input event name.
+    # track_df = tracking data, any number of plays
+    if type(event_name) is str:
+        event_name = [event_name]
+    elif type(event_name) is list or type(event_name) is tuple:
+        pass  # expected type
+    else:
+        raise TypeError('Expected event_name input to be of type str, list, or tuple; input was type ' +
+                        type(event_name).__name__)
+
+    return (track_df.loc[track_df.event.isin(event_name),
+                         ['gameId', 'playId', 'frameId', 'event']]
+            .groupby(['gameId', 'playId', 'frameId'])
+            .head(1)
+            )
+
+
+def remove_abnormal_plays(nfl_df, bad_play_list: list):
+    # removes specified playId's from an NFL df that has gameId and playId fields (could be track, play, ...). 
+    # bad_play_list is a list in format [(gid1, pid1), (gid2, pid2), ...]
+    return nfl_df[~pd.Series(index=nfl_df.index, data=list(zip(nfl_df.gameId, nfl_df.playId)))
+                    .isin(bad_play_list)]
+
+
+def remove_abnormal_frames(track_df, bad_frame_list: list):
+    # removes specified frameId's from track_df. bad_play_list is a list in format [(gid1, pid1, fid1), (gid2, pid2, fid2), ...]
+    return track_df[~pd.Series(index=track_df.index, data=list(zip(track_df.gameId, track_df.playId, track_df.frameId)))
+                    .isin(bad_frame_list)]
+
+
 def transform_tracking_data(track_df, inplace=False):
     """
     Standardizes the tracking data so that all offensive plays have the same reference frame (Madden camera)
