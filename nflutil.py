@@ -4,7 +4,7 @@ import os.path
 
 
 # ---------- INTERNAL FUNCTIONS ----------------- #####
-def _rgb(r, g, b):
+def _rgb(r: int, g: int, b: int) -> np.ndarray:
     # Converts RGB range from 0-255 to 0-1 for matplotlib.
     # Returns np.array of length 3.
     return np.array([r, g, b]) / 255.0
@@ -48,7 +48,7 @@ TEAM_COLORS = {'ARI': {'main': _rgb(155, 35, 63), 'secondary': _rgb(255, 255, 25
 
 
 # -------------- FUNCTIONS -------------------------------------------
-def base_import(base_path='csv', week=1):
+def base_import(base_path: str = 'csv', week: int = 1) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Imports DataFrames of data
     :param base_path: [str] folder path containing csv files
@@ -66,7 +66,7 @@ def base_import(base_path='csv', week=1):
     return game_df, play_df, players_df, coverage_df, target_df, track_df
 
 
-def get_frame_of_event(track_df, event_name):
+def get_frame_of_event(track_df: pd.DataFrame, event_name: str | list[str] | tuple[str]) -> pd.DataFrame:
     # returns a dataframe of gameId, playId, frameId, and event name for the input event name.
     # track_df = tracking data, any number of plays
     if type(event_name) is str:
@@ -84,20 +84,20 @@ def get_frame_of_event(track_df, event_name):
             )
 
 
-def remove_abnormal_plays(nfl_df, bad_play_list: list):
+def remove_abnormal_plays(nfl_df: pd.DataFrame, bad_play_list: list[tuple[int, int]]) -> pd.DataFrame:
     # removes specified playId's from an NFL df that has gameId and playId fields (could be track, play, ...). 
     # bad_play_list is a list in format [(gid1, pid1), (gid2, pid2), ...]
     return nfl_df[~pd.Series(index=nfl_df.index, data=list(zip(nfl_df.gameId, nfl_df.playId)))
                     .isin(bad_play_list)]
 
 
-def remove_abnormal_frames(track_df, bad_frame_list: list):
+def remove_abnormal_frames(track_df: pd.DataFrame, bad_frame_list: list[tuple[int, int, int]]) -> pd.DataFrame:
     # removes specified frameId's from track_df. bad_play_list is a list in format [(gid1, pid1, fid1), (gid2, pid2, fid2), ...]
     return track_df[~pd.Series(index=track_df.index, data=list(zip(track_df.gameId, track_df.playId, track_df.frameId)))
                     .isin(bad_frame_list)]
 
 
-def transform_tracking_data(track_df, inplace=False):
+def transform_tracking_data(track_df: pd.DataFrame, inplace: bool = False) -> pd.DataFrame | None:
     """
     Standardizes the tracking data so that all offensive plays have the same reference frame (Madden camera)
 

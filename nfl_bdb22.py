@@ -3,7 +3,7 @@ import numpy as np
 import nflutil
 
 # ===== PREP FUNCTIONS ========================= #
-def prep_get_modeling_frames(track_df, play_df, pff_df):
+def prep_get_modeling_frames(track_df: pd.DataFrame, play_df: pd.DataFrame, pff_df: pd.DataFrame) -> pd.DataFrame:
     return (
         track_df
         # (1) filter down to punt plays with a return
@@ -11,12 +11,19 @@ def prep_get_modeling_frames(track_df, play_df, pff_df):
                how='inner',
                on=['gameId','playId']
               )
-        # (2) filter down to clean catches
+        # (2) only consider plays with a single returner (simplifies analysis - 1 target for defenders to converge on)
+        .merge(play_df.loc[~play_df.returnerId.astype(str).str.contains(';'), ## only consider plays with 1 returner
+                            ['gameId','playId']],
+                how='inner',
+                left_on=['gameId','playId'],
+                right_on=['gameId','playId']
+              )
+        # (3) filter down to clean catches
         .merge(pff_df.loc[pff_df.kickContactType=='CC', ['gameId','playId']],
                how='inner',
                on=['gameId','playId']
               )
-        # (3) filter to all frames between the punt and the catch
+        # (4) filter to all frames between the punt and the catch
         .merge(
             # Dataframe of: gameId, playId, punt (frameId), punt_received (frameId)
             (nflutil.get_frame_of_event(track_df, 
@@ -39,7 +46,7 @@ def prep_get_modeling_frames(track_df, play_df, pff_df):
 
 
 # ==== FEATURE GENERATION FUNCTIONS =========================================
-def feat_timeToCatch(track_df):
+def feat_timeToCatch(track_df: pd.DataFrame) -> pd.DataFrame:
     # adds timeToCatch feature to dataframe
     return (
         track_df
@@ -59,7 +66,7 @@ def feat_timeToCatch(track_df):
     )
 
 
-def feat_byDefender(track_df, play_df, game_df, n_defenders=4):
+def feat_byDefender(track_df: pd.DataFrame, play_df: pd.DataFrame, game_df: pd.DataFrame, n_defenders: int = 4) -> pd.DataFrame:
     return_df =  (
         track_df
         # get location data of returner for each frame for modeling
@@ -104,7 +111,7 @@ def feat_byDefender(track_df, play_df, game_df, n_defenders=4):
 
     return return_df
 
-def feat_returnerSpeedAtCatch(track_df, play_df):
+def feat_returnerLateralSpeed(track_df: pd.DataFrame, play_df: pd.DataFrame) -> pd.DataFrame:
     return (
         track_df
         # get location data of returner for each frame for modeling
@@ -113,10 +120,68 @@ def feat_returnerSpeedAtCatch(track_df, play_df):
                 how='inner',
                 left_on=['gameId','playId','nflId'],
                 right_on=['gameId','playId','returnerId'])
-        .assign(timeToCatch = lambda df_: feat_timeToCatch(df_)['timeToCatch'])
-        # filter to time of catch
-        .query('timeToCatch == 0.0')
-        .assign(s_dwnfld = lambda df_: df_.s * -np.sin(np.deg2rad(df_.dir)))  # 0-180 degrees are backwards
+        .assign(s_lateral = lambda df_: df_.s * np.abs(np.cos(np.deg2rad(df_.dir))))  # speed only, don't care about which sideline direction
         # filter to applicable columns
-        .filter(['gameId','playId', 's_dwnfld'])
+        .filter(['gameId','playId', 'frameId', 's_lateral'])
     )
+
+def feat_returnerDownfieldSpeed(track_df: pd.DataFrame, play_df: pd.DataFrame) -> pd.DataFrame:
+    return (
+        track_df
+        # get location data of returner for each frame for modeling
+        .merge(play_df.loc[~play_df.returnerId.astype(str).str.contains(';'), ## only consider plays with 1 returner
+                            ['gameId','playId','returnerId']].astype({"returnerId": float}),
+                how='inner',
+                left_on=['gameId','playId','nflId'],
+                right_on=['gameId','playId','returnerId'])
+        .assign(s_dwnfld = lambda df_: df_.s * -np.sin(np.deg2rad(df_.dir)))  # 0-180 degrees are backwards/towards own endzone
+        # filter to applicable columns
+        .filter(['gameId','playId', 'frameId', 's_dwnfld'])
+    )
+
+def feat_returnerSpeed(track_df: pd.DataFrame, play_df: pd.DataFrame) -> pd.DataFrame:
+    return (
+        track_df
+        # get location data of returner for each frame for modeling
+        .merge(play_df.loc[~play_df.returnerId.astype(str).str.contains(';'), ## only consider plays with 1 returner
+                            ['gameId','playId','returnerId']].astype({"returnerId": float}),
+                how='inner',
+                left_on=['gameId','playId','nflId'],
+                right_on=['gameId','playId','returnerId'])
+        .assign(s_abs=lambda df_: df_.s)
+        # filter to applicable columns
+        .filter(['gameId','playId', 'frameId', 's_abs'])
+    )
+
+def feat_returnerDistFromSideline(track_df: pd.DataFrame, play_df: pd.DataFrame) -> pd.DataFrame:
+    return (
+        track_df
+        # get location data of returner for each frame for modeling
+        .merge(play_df.loc[~play_df.returnerId.astype(str).str.contains(';'), ## only consider plays with 1 returner
+                            ['gameId','playId','returnerId']].astype({"returnerId": float}),
+                how='inner',
+                left_on=['gameId','playId','nflId'],
+                right_on=['gameId','playId','returnerId'])
+        # distance to closest sideline
+        .assign(distFromSideline=lambda df_: np.where(df_['y'] < nflutil.FIELD_SIZE_Y / 2, df_['y'], nflutil.FIELD_SIZE_Y - df_['y']))
+        # filter to applicable columns
+        .filter(['gameId','playId', 'frameId', 'distFromSideline'])
+    )
+
+### This may not be a relevant function - for fair catch analysis this is an unknown future value
+# def feat_returnerSpeedAtCatch(track_df: pd.DataFrame, play_df: pd.DataFrame) -> pd.DataFrame:
+#     return (
+#         track_df
+#         # get location data of returner for each frame for modeling
+#         .merge(play_df.loc[~play_df.returnerId.astype(str).str.contains(';'), ## only consider plays with 1 returner
+#                             ['gameId','playId','returnerId']].astype({"returnerId": float}),
+#                 how='inner',
+#                 left_on=['gameId','playId','nflId'],
+#                 right_on=['gameId','playId','returnerId'])
+#         .assign(timeToCatch = lambda df_: feat_timeToCatch(df_)['timeToCatch'])
+#         # filter to time of catch
+#         .query('timeToCatch == 0.0')
+#         .assign(s_dwnfld = lambda df_: df_.s * -np.sin(np.deg2rad(df_.dir)))  # 0-180 degrees are backwards
+#         # filter to applicable columns
+#         .filter(['gameId','playId', 's_dwnfld_at_catch'])
+#     )
