@@ -88,7 +88,7 @@ def remove_abnormal_plays(nfl_df: pd.DataFrame, bad_play_list: list[tuple[int, i
     # removes specified playId's from an NFL df that has gameId and playId fields (could be track, play, ...). 
     # bad_play_list is a list in format [(gid1, pid1), (gid2, pid2), ...]
     return nfl_df[~pd.Series(index=nfl_df.index, data=list(zip(nfl_df.gameId, nfl_df.playId)))
-                    .isin(bad_play_list)]
+                    .isin(bad_play_list)].copy()
 
 
 def remove_abnormal_frames(track_df: pd.DataFrame, bad_frame_list: list[tuple[int, int, int]]) -> pd.DataFrame:
