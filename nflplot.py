@@ -55,6 +55,10 @@ class PlayAnimation:
         self._ax_base = self._fig.gca()  # base Axes (field)
         self._ax_play = self._ax_base.twinx()  # play Axes (players, football) on top of the base field markers
 
+        # frame information entities - placeholders
+        self._text_frame_id = self._ax_base.text(1, 5, '')
+        self._text_event = self._ax_base.text(1, 3, '')
+        
         # scatter plot entities - placeholders
         self._scat_fb = self._ax_play.scatter([], [], s=100, color='brown')
         self._scat_home = self._ax_play.scatter([], [], s=400, color=self._team_colors['home']['main'],
@@ -143,6 +147,13 @@ class PlayAnimation:
         hist_df = self._frame_data[self._frame_data.frameId <= anim_frame]
         # current frame tracking data
         pos_df = self._frame_data[self._frame_data.frameId == anim_frame]
+
+        # add text for the current Frame ID and event (if applicable)
+        self._text_frame_id.set_text(f'Frame ID: {anim_frame}')
+        frame_event = pos_df.iloc[0]['event']
+        if type(frame_event) is not str:
+            frame_event = ''  # no event (nan)
+        self._text_event.set_text(f'Event: {frame_event}')
 
         # plot the dots for home team, away team, and football
         for label in pos_df.team.unique():
