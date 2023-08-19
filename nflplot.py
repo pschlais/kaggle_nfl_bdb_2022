@@ -61,9 +61,9 @@ class PlayAnimation:
         
         # scatter plot entities - placeholders
         self._scat_fb = self._ax_play.scatter([], [], s=100, color='brown')
-        self._scat_home = self._ax_play.scatter([], [], s=400, color=self._team_colors['home']['main'],
+        self._scat_home = self._ax_play.scatter([], [], s=250, color=self._team_colors['home']['main'],
                                                 edgecolors=self._team_colors['home']['secondary'])
-        self._scat_away = self._ax_play.scatter([], [], s=400, color=self._team_colors['away']['main'],
+        self._scat_away = self._ax_play.scatter([], [], s=250, color=self._team_colors['away']['main'],
                                                 edgecolors=self._team_colors['away']['secondary'])
 
         # containers for player plot entities
@@ -128,13 +128,13 @@ class PlayAnimation:
         for _ in range(self._num_players):
             # position text (QB, RB, etc.)
             self._scat_position_list.append(
-                self._ax_play.text(0, 0, '', horizontalalignment='center', verticalalignment='center'))
+                self._ax_play.text(0, 0, '', horizontalalignment='center', verticalalignment='center', fontsize=7))
             # player numbers (12, 88, etc.)
             self._scat_number_list.append(
-                self._ax_play.text(0, 0, '', horizontalalignment='center', verticalalignment='center'))
+                self._ax_play.text(0, 0, '', horizontalalignment='center', verticalalignment='center', fontsize=8))
             # player names
             self._scat_name_list.append(
-                self._ax_play.text(0, 0, '', horizontalalignment='center', verticalalignment='center'))
+                self._ax_play.text(0, 0, '', horizontalalignment='center', verticalalignment='center', fontsize=8))
             # player track histories from the start of the play
             self._plot_track_list.append(self._ax_play.plot([], [], alpha=0.5))
 
@@ -176,11 +176,11 @@ class PlayAnimation:
             self._scat_position_list[index].set_text(player.position)  # position (QB, RB, etc.)
             self._scat_position_list[index].set_color(self._team_colors[player.team]['secondary'])  # text color
             # number of each player
-            self._scat_number_list[index].set_position((player.x, player.y + 1.9))  # above dot
+            self._scat_number_list[index].set_position((player.x, player.y + 1.6))  # above dot
             self._scat_number_list[index].set_text(int(player.jerseyNumber))  # number
             self._scat_number_list[index].set_color(self._team_colors[player.team]['main'])  # text color
             # name of each player
-            self._scat_name_list[index].set_position((player.x, player.y - 1.9))  # below dot
+            self._scat_name_list[index].set_position((player.x, player.y - 1.7))  # below dot
             self._scat_name_list[index].set_text(player.displayName.split()[-1])  # last name only
             self._scat_name_list[index].set_color(self._team_colors[player.team]['main'])  # text color
             # track of each player from the previous frames
