@@ -110,10 +110,14 @@ class PlayAnimation:
 
         # plot the line markers across the field in 10-yard increments
         for yd_line in range(0, int(FIELD_SIZE_X) + 1, 10):
+            self._ax_base.plot([yd_line, yd_line], [0, FIELD_SIZE_Y], color='k', linestyle='-', alpha=0.3)
+        
+        # plot the 5 yard line markers in lighter color
+        for yd_line in range(15, int(FIELD_SIZE_X) - 10 + 1, 10):
             self._ax_base.plot([yd_line, yd_line], [0, FIELD_SIZE_Y], color='k', linestyle='-', alpha=0.2)
 
         # plot all hash marks not on the lines across the field (converted yard lines to x-coordinates)
-        hash_x = np.array([i for i in range(1, 100) if i % 10 != 0]) + 10
+        hash_x = np.array([i for i in range(1, 100) if i % 5 != 0]) + 10
         for yd_line in hash_x:
             # home side inner hashes
             self._ax_base.plot([yd_line, yd_line], [22.916, 23.583], color='k', alpha=0.2)
