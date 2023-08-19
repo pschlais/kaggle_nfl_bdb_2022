@@ -100,13 +100,13 @@ def feat_timeToCatch(track_df: pd.DataFrame, catch_type: str='punt_received') ->
     )
 
 
-def feat_byDefender(track_df: pd.DataFrame, play_df: pd.DataFrame, game_df: pd.DataFrame, n_defenders: int = 4) -> pd.DataFrame:
+def feat_byDefender(track_df: pd.DataFrame, play_df: pd.DataFrame, game_df: pd.DataFrame, n_defenders: int = 4, catch_type: str='punt_received') -> pd.DataFrame:
     
     return_df =  (
         track_df
         # add time to catch as a baseline value for feature generation
         # -- feat_timeToCatch modifies the indexes because of the merge(), so assign() doesn't work properly if in Series format
-        .assign(timeToCatch = lambda df_: feat_timeToCatch(df_)['timeToCatch'].to_numpy()) 
+        .assign(timeToCatch = lambda df_: feat_timeToCatch(track_df=df_, catch_type=catch_type)['timeToCatch'].to_numpy()) 
         # get location data of returner for each frame for modeling
         .merge(play_df.loc[~play_df.returnerId.astype(str).str.contains(';'), ## only consider plays with 1 returner
                             ['gameId','playId','returnerId']].astype({"returnerId": float}),
@@ -154,7 +154,7 @@ def feat_byDefender(track_df: pd.DataFrame, play_df: pd.DataFrame, game_df: pd.D
         # filter to closest n defenders
         .query('distOrder <= ' + str(n_defenders))
         # pivot so that one line is for a given gameId/playId/frameId
-        .pivot(index=['gameId','playId','frameId','willReach','reachWithin5','reachWithin10','reachWithin20','reachWithin30'], 
+        .pivot(index=['gameId','playId','frameId','timeToCatch','willReach','reachWithin5','reachWithin10','reachWithin20','reachWithin30'], 
                columns=['distOrder'], 
                values=['dist','timeToClose','upGutLeverage','willReachFactor']
                )
@@ -240,3 +240,34 @@ def feat_returnerDistFromSideline(track_df: pd.DataFrame, play_df: pd.DataFrame)
 #         # filter to applicable columns
 #         .filter(['gameId','playId', 's_dwnfld_at_catch'])
 #     )
+
+def model_create_features(clean_track_df: pd.DataFrame, play_df: pd.DataFrame, game_df: pd.DataFrame, n_defenders: int, catch_type: str='punt_received') -> pd.DataFrame:
+    modeling_feature_df = (
+    clean_track_df
+    # compress to gameId, playId, frameId to build features onto
+    [['gameId','playId','frameId']]
+    .drop_duplicates()
+    ## === ADD FEATURES =====================
+    # defender stats for n-closest defenders at given frame - also compress output to each record = game-play-frame
+    .merge(feat_byDefender(track_df=clean_track_df, play_df=play_df, game_df=game_df, n_defenders=n_defenders, catch_type=catch_type),
+           how='inner',
+           on=['gameId','playId','frameId']
+          )
+    # returner speed
+    .merge(feat_returnerSpeed(track_df=clean_track_df, play_df=play_df),
+           how='inner',
+           on=['gameId','playId','frameId'])
+    # returner downfield speed
+    .merge(feat_returnerDownfieldSpeed(track_df=clean_track_df, play_df=play_df),
+           how='inner',
+           on=['gameId','playId','frameId'])
+    # returner lateral speed
+    .merge(feat_returnerLateralSpeed(track_df=clean_track_df, play_df=play_df),
+           how='inner',
+           on=['gameId','playId','frameId'])
+    # returner distance to closest sideline
+    .merge(feat_returnerDistFromSideline(track_df=clean_track_df, play_df=play_df),
+           how='inner',
+           on=['gameId','playId','frameId'])
+    )
+    return modeling_feature_df
