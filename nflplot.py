@@ -1,6 +1,9 @@
+import os
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import animation
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import nflutil
 
 
@@ -199,3 +202,36 @@ class PlayAnimation:
                 *self._scat_name_list, *self._plot_track_list)
 
 # -------- FUNCTIONS --------------------------------- ###
+# function to place image on plot
+def _add_logo(ax, x, y, team_abbr, asset_folder_location='./assets/logos/', x_offsetpoints=0, y_offsetpoints=0, zoom=0.08) -> None:
+    img = plt.imread(os.path.join(asset_folder_location, f'{team_abbr}.png'))
+    im = OffsetImage(img, zoom=zoom)
+    im.image.axes = ax
+    ab = AnnotationBbox(im, (x, y), xybox=(x_offsetpoints, y_offsetpoints), frameon=False,
+                        xycoords='data', boxcoords="offset points", pad=0)
+    ax.add_artist(ab)
+
+
+#create bar plot
+def create_team_bar_plot(ax, team_labels: pd.Series, plot_values: pd.Series, add_logos=True, bar_width=0.8) -> plt.Axes:
+    # map team abbreviations to color map
+    team_colors = team_labels.map({abbr: colors['main'] for abbr, colors in nflutil.TEAM_COLORS.items()})
+    # create bar plot
+    ax.bar(x=team_labels, height=plot_values, width=bar_width, color=team_colors, align='center')
+    # add logos for each bar
+    for i, (label, value) in enumerate(zip(team_labels, plot_values)):
+        # x = integer position (ranking), y = height of the bar (value)
+        _add_logo(ax=ax, x=i, y=value, team_abbr=label, y_offsetpoints=10)
+    
+    return ax
+
+#create scatter plot
+def create_team_scatter_plot(ax, x, y, team_labels: pd.Series) -> plt.Axes:
+    # create scatter plot
+    ax.scatter(x=x, y=y, alpha=0)  # make points transparent. Only calling this to set up structure and limits of scatter plot
+    # add logos for each bar
+    for (label, x_i, y_i) in zip(team_labels, x, y):
+        # x = integer position (ranking), y = height of the bar (value)
+        _add_logo(ax=ax, x=x_i, y=y_i, team_abbr=label, zoom=0.10)
+    
+    return ax
