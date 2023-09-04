@@ -1,5 +1,6 @@
 # Custom for this project
 csv/*
+!csv/model_features.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
