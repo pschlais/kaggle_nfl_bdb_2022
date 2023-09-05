@@ -213,7 +213,7 @@ def _add_logo(ax, x, y, team_abbr, asset_folder_location='./assets/logos/', x_of
 
 
 #create bar plot
-def create_team_bar_plot(ax, team_labels: pd.Series, plot_values: pd.Series, add_logos=True, bar_width=0.8) -> plt.Axes:
+def create_team_bar_plot(ax, team_labels: pd.Series, plot_values: pd.Series, add_logos=True, bar_width=0.8, asset_folder_location='./assets/logos/') -> plt.Axes:
     # map team abbreviations to color map
     team_colors = team_labels.map({abbr: colors['main'] for abbr, colors in nflutil.TEAM_COLORS.items()})
     # create bar plot
@@ -221,17 +221,17 @@ def create_team_bar_plot(ax, team_labels: pd.Series, plot_values: pd.Series, add
     # add logos for each bar
     for i, (label, value) in enumerate(zip(team_labels, plot_values)):
         # x = integer position (ranking), y = height of the bar (value)
-        _add_logo(ax=ax, x=i, y=value, team_abbr=label, y_offsetpoints=10)
+        _add_logo(ax=ax, x=i, y=value, team_abbr=label, y_offsetpoints=10, asset_folder_location=asset_folder_location)
     
     return ax
 
 #create scatter plot
-def create_team_scatter_plot(ax, x, y, team_labels: pd.Series) -> plt.Axes:
+def create_team_scatter_plot(ax, x, y, team_labels: pd.Series, asset_folder_location='./assets/logos/') -> plt.Axes:
     # create scatter plot
     ax.scatter(x=x, y=y, alpha=0)  # make points transparent. Only calling this to set up structure and limits of scatter plot
     # add logos for each bar
     for (label, x_i, y_i) in zip(team_labels, x, y):
         # x = integer position (ranking), y = height of the bar (value)
-        _add_logo(ax=ax, x=x_i, y=y_i, team_abbr=label, zoom=0.10)
+        _add_logo(ax=ax, x=x_i, y=y_i, team_abbr=label, zoom=0.10, asset_folder_location=asset_folder_location)
     
     return ax
